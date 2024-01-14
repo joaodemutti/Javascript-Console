@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.console{width:70vw;height:5cm;}
+body{text-align:-webkit-center;padding:1cm;}
+.consoleOutput{text-align:left;}
+</style>
+</head>
+<body>
+	<textarea type="text" class="console consoleInput" onkeydown="input(event)"></textarea>
+	<br>
+	<div class="console" style="height:fit-content;"><input id="keydebug" type="checkbox" style="float:left;"></div>
+	<div class="console consoleOutput down"></div>
+<script>
+
+rightArrow='&#11208'
+downArrow='&#11206'
+
+liStyle=' style="list-style-type:disclosure-closed; cursor:pointer;display:none;" '
+clickEvent=' onclick="if(this==event.srcElement)ToggleChildren(event.srcElement)"'
+ulOption=clickEvent+' style="list-style-type:disclosure-closed; cursor:pointer;display:none;" '
+clickedToHTML=obj=>' onclick="this.innerText = \''+obj.toString()+'\';this.style.listStyleType = \'disclosure-open\'" '
+
+function ToggleChildren(sender,event){
+	console.log(sender.children[0]?.style['display'])
+	let bool = !(sender.children[0]?.style['display']=='none')
+	console.log(bool)
+	for(el of sender.children){console.log(el,el.style['display']);el.style['display']=bool?'none':'list-item'}
+	sender.style.listStyleType = ('disclosure-'+(!bool?'open':'closed'))
+}
+
+Object.defineProperties(
+	String.prototype,
+	{
+		ul:{value:(function(options){return '<ul '+(options??'')+'>'+this+'</ul>'})},
+		li:{value:(function(options){return '<li '+(options??'')+'>'+this+'</li>'})},
+		a:{value:(function(options){return '<a '+(options??'')+'>'+this+'</a>'})},
+		toHTML:{value:(function(){return this.toString()})}
+	}
+)
+
+Object.defineProperty(
+	Object.prototype,
+	'toHTML',
+	{
+		value:function(){
+			
+			return (
+				this.toString()+
+				((obj)=>{
+					let ks = ''
+					let prks = ''
+					try{
+						for(k of Object.keys(obj).sort((a,b)=>a==b?0:a>b?1:-1))ks+=k.ul(clickedToHTML(obj[k])+liStyle)
+					
+						for(let proto=typeof obj=='function'?obj:obj.constructor;proto!=null;proto=Object.getPrototypeOf(proto)){
+
+							for(k of Object.getOwnPropertyNames(proto))
+								prks+=k.ul(clickedToHTML(proto[k])+liStyle)
+						}
+
+					}catch(e){}
+					return ('object'+ks).ul(ulOption)+('prototype'+prks).ul(ulOption)
+				})(this)
+			).ul(clickEvent+' style="display:list-item;list-style-type:disclosure-closed;"')
+		}
+	}
+)
+
+function 	consoleOutElement(input,result,index){
+	return 	'<br>'+index+' > '+input+
+		':<br>'+
+		(result===Object(result)?result.toHTML():result)+
+		'<br>'
+}
+
+consoleInput = document.querySelector('.consoleInput')
+consoleOutput = document.querySelector('.consoleOutput')
+
+function write(obj)
+{
+	dir=consoleOutput.classList.contains('down')
+	consoleOutput.insertAdjacentHTML(dir?'afterBegin':'beforeEnd',obj)
+}
+
+commandCount = 0
+function input(e){
+	if(document.querySelector('#keydebug').checked)write(e.toHTML())
+	if(e.key=='Enter' && !e.shiftKey){
+		e.preventDefault()
+		let result = new Object()
+		try{result = eval(consoleInput.value)}
+		catch(e){result = e}
+		console.log(result)
+		commandCount+=1
+		result=consoleOutElement(consoleInput.value,result,commandCount)
+		write(result)
+		
+	}
+}
+
+consoleInput.focus()
+</script>
+</body>
